@@ -3,9 +3,17 @@ package WWW::Moviepilot;
 use warnings;
 use strict;
 
+use Carp;
+use JSON::Any;
+use LWP::UserAgent;
+use URI;
+use URI::Escape;
+
+use WWW::Moviepilot::Movie;
+
 =head1 NAME
 
-WWW::Moviepilot - The great new WWW::Moviepilot!
+WWW::Moviepilot - Interface to the moviepilot.de database.
 
 =head1 VERSION
 
@@ -15,38 +23,195 @@ Version 0.01
 
 our $VERSION = '0.01';
 
-
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
-
-Perhaps a little code snippet.
-
     use WWW::Moviepilot;
+    my $m = WWW::Moviepilot->new({
+        api_key => ...,
+        host    => 'www.moviepilot.de',
+    });
 
-    my $foo = WWW::Moviepilot->new();
-    ...
+    # direct retrieval
+    my $movie = $m->movie( 'matrix' );
 
-=head1 EXPORT
+    # search
+    my @movies = $m->search_movie( 'matrix' );
+    foreach my $movie ( @movies ) {
+        print $movie->display_title;
+    }
 
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
+=head1 METHODS
 
-=head1 FUNCTIONS
+=head2 new( $args )
 
-=head2 function1
+Creates a new WWW::Moviepilot instance.
+
+    my $m = WWW::Moviepilot->new( $args );
+
+C<$args> must be a hash reference, you should supply an API key:
+
+    $args->{api_key} = ...;
+
+To get a valid API key you should read L<http://wiki.github.com/moviepilot/moviepilot-API/>.
+
+Further optional arguments:
+
+=over 4
+
+=item * C<host> (default: C<www.moviepilot.de>)
+
+The host where the requests are sent to.
+
+=item * C<ua> (default: C<< LWP::UserAgent->new >>)
+
+A L<LWP::UserAgent> compatible user agent.
+
+=back
 
 =cut
 
-sub function1 {
+sub new {
+    my ($class, $args) = @_;
+    my $self = bless {} => $class;
+    $self->{api_key} = $args->{api_key} || croak "api_key is missing at " . __PACKAGE__ . "->new()";
+    $self->{host}    = $args->{host}    || 'www.moviepilot.de';
+    $self->{ua}      = $args->{ua}      || LWP::UserAgent->new;
+
+    $self->{host} = 'http://' . $self->{host} unless $self->{host} =~ m{^http://};
+
+    return $self;
 }
 
-=head2 function2
+=head2 movie( $name ) | movie( $source => $id )
+
+Retrieve a movie as L<WWW::Moviepilot::Movie> object.
+There are two ways to specify which movie to retrieve.
+First, you can provide the name of the movie (this name is some kind of normalised,
+I'm not sure how exactly):
+
+    my $movie = $m->movie( 'matrix' );
+
+The second form is to provide an alternate ID:
+
+    my $movie = $m->movie( imdb => '133093' );
+    my $movie = $m->movie( amazon => 'B00004R80K' );
 
 =cut
 
-sub function2 {
+sub movie {
+    my ($self, @args) = @_;
+
+    my $url = $self->host . '/movies/';
+    if ( @args > 2 ) {
+        croak "invalid usage of " . __PACKAGE__ . "->movie()";
+    }
+    $url .= join '-id-', map { uri_escape($_) } @args;
+    $url .= '.json';
+
+    my $uri = URI->new( $url );
+    $uri->query_form( api_key => $self->api_key );
+    my $res = $self->ua->get( $uri->as_string );
+
+    if( $res->is_error ) {
+        croak $res->status_line;
+    }
+
+    my $json = JSON::Any->from_json( $res->decoded_content );
+
+    my $movie = WWW::Moviepilot::Movie->new;
+    $movie->populate({ data => $json });
+    return $movie;
 }
+
+=head2 search_movie( $query )
+
+Searches for a movie and returns a list with results:
+
+    my @movielist = $m->search_movie( 'matrix' );
+    if ( @movielist == 0 ) {
+        print 'no movies found';
+    }
+    else {
+        # each $movie is a WWW::Moviepilot::Movie object
+        foreach my $movie ( @movielist ) {
+            print $movie->display_title;        # e.g. Matrix
+            print $movie->production_year;      # e.g. 1999
+            print scalar $movie->emotions_list; # e.g. Spannend,Aufregend
+
+            # in list context, all *_list fields are split up by comma
+            my @emotions = $movie->emotions_list;
+        }
+    }
+
+At most there are 20 movies returned.
+
+See L<WWW::Moviepilot::Movie>.
+
+=cut
+
+sub search_movie {
+    my ($self, $query) = @_;
+
+    my $uri = URI->new( $self->host . '/searches/movies.json' );
+    $uri->query_form(
+        api_key => $self->api_key,
+        q       => $query,
+    );
+
+    my $res = $self->ua->get( $uri->as_string );
+    if ( $res->is_error ) {
+        croak $res->status_line;
+    }
+
+    my $o = JSON::Any->from_json( $res->decoded_content );
+
+    my @result = ();
+    foreach my $entry ( @{ $o->{movies} } ) {
+        my $movie = WWW::Moviepilot::Movie->new;
+        $movie->populate({ data => $entry });
+        push @result, $movie;
+    }
+
+    return @result;
+}
+
+=head2 api_key
+
+    my $api_key = $m->api_key;
+
+Returns the API key provided to the C<new> constructor.
+
+=cut
+
+sub api_key { return shift->{api_key} }
+
+=head2 ua
+
+    my $ua = $m->ua;
+
+Returns the user agent, usually a L<LWP::UserAgent>.
+
+=cut
+
+sub ua { return shift->{ua} }
+
+=head2 host
+
+    my $host = $m->host;
+
+Returns host which the requests are sent to provided to the C<new> constructor.
+
+=cut
+
+sub host { return shift->{host} }
+
+1;
+__END__
+
+=head1 SEE ALSO
+
+The Moviepilot API Dokumentation at L<http://wiki.github.com/moviepilot/moviepilot-API/>,
+L<WWW::Moviepilot::Movie>, L<LWP::UserAgent>.
 
 =head1 AUTHOR
 
@@ -55,18 +220,15 @@ Frank Wiegand, C<< <frank.wiegand at gmail.com> >>
 =head1 BUGS
 
 Please report any bugs or feature requests to C<bug-www-moviepilot at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WWW-Moviepilot>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-
-
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=WWW-Moviepilot>.
+I will be notified, and then you'll automatically be notified of progress on your bug as I
+make changes.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
     perldoc WWW::Moviepilot
-
 
 You can also look for information at:
 
@@ -90,9 +252,10 @@ L<http://search.cpan.org/dist/WWW-Moviepilot/>
 
 =back
 
-
 =head1 ACKNOWLEDGEMENTS
 
+Thanks to the moviepilot.de team for providing an API key for
+developing and testing this module.
 
 =head1 COPYRIGHT & LICENSE
 
@@ -104,7 +267,4 @@ by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
 
-
 =cut
-
-1; # End of WWW::Moviepilot

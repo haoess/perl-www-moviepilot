@@ -12,8 +12,15 @@ WriteMakefile(
       : ()),
     PL_FILES            => {},
     PREREQ_PM => {
-        'Test::More' => 0,
+        'Test::More'     => 0,
+        'JSON::Any'      => 0,
+        'LWP::UserAgent' => 0,
+        'URI'            => 0,
+        'URI::Escape'    => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'WWW-Moviepilot-*' },
+    ($ExtUtils::MakeMaker::VERSION >= 6.4502
+      ? ( META_ADD => { resources => { repository => "git://github.com/haoess/cpanpm.git" } } )
+      : ()),
 );
