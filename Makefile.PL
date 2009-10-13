@@ -21,6 +21,6 @@ WriteMakefile(
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'WWW-Moviepilot-*' },
     ($ExtUtils::MakeMaker::VERSION >= 6.4502
-      ? ( META_ADD => { resources => { repository => "git://github.com/haoess/cpanpm.git" } } )
+      ? ( META_ADD => { resources => { repository => "git://github.com/haoess/perl-www-moviepilot.git" } } )
       : ()),
 );
