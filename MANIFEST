@@ -6,5 +6,6 @@ README
 lib/WWW/Moviepilot.pm
 lib/WWW/Moviepilot/Movie.pm
 t/00-load.t
+t/99-kwalitee.t
 t/pod-coverage.t
 t/pod.t
