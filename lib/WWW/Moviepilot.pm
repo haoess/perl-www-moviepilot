@@ -13,7 +13,7 @@ use WWW::Moviepilot::Movie;
 
 =head1 NAME
 
-WWW::Moviepilot - Interface to the moviepilot.de database.
+WWW::Moviepilot - Interface to the moviepilot.de database
 
 =head1 VERSION
 
