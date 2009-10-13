@@ -8,7 +8,7 @@ use JSON::Any;
 
 =head1 NAME
 
-WWW::Moviepilot::Movie - Handle moviepilot.de movies.
+WWW::Moviepilot::Movie - Handle moviepilot.de movies
 
 =head1 SYNOPSIS
 
