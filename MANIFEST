@@ -4,7 +4,13 @@ Makefile.PL
 README
 lib/WWW/Moviepilot.pm
 lib/WWW/Moviepilot/Movie.pm
+lib/WWW/Moviepilot/Person.pm
 t/00-load.t
+t/10-basics.t
+t/11-searchmovie.t
+t/12-movie.t
+t/13-cast.t
+t/14-person.t
 t/99-kwalitee.t
 t/pod-coverage.t
 t/pod.t

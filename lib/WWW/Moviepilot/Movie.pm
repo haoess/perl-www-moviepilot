@@ -5,6 +5,10 @@ use strict;
 
 use Carp;
 use JSON::Any;
+use URI;
+use URI::Escape;
+
+use WWW::Moviepilot::Person;
 
 =head1 NAME
 
@@ -12,7 +16,7 @@ WWW::Moviepilot::Movie - Handle moviepilot.de movies
 
 =head1 SYNOPSIS
 
-    my $movie = WWW::Moviepilot->new->movie( 'matrix' );
+    my $movie = WWW::Moviepilot->new(...)->movie( 'matrix' );
 
     # all fields
     my @fields = $movie->fields;
@@ -40,7 +44,12 @@ Creates a blank WWW::Moviepilot::Movie object.
 
 sub new {
     my ($class, $args) = @_;
-    my $self = bless {} => $class;
+    my $self = bless {
+        cast => [],
+        data => {},
+        name => undef,
+        m    => $args->{m}
+    } => $class;
     return $self;
 }
 
@@ -53,14 +62,89 @@ Populates an object with data, you should not use this directly.
 sub populate {
     my ($self, $args) = @_;
     $self->{data} = $args->{data};
+    if ( $self->restful_url ) {
+        ($self->{name}) = $self->restful_url =~ m{/([^/]+)$};
+    }
 }
 
-=head2 poster
+=head2 name
+
+Returns the internal moviepilot name for the movie.
+
+    my @movies = WWW::Moviepilot->new(...)->search_movie( 'matrix' );
+    foreach my $movie (@movies) {
+        print $movie->name;
+    }
+    __END__
+    matrix
+    armitage-iii-dual-matrix
+    the-matrix-reloaded
+    the-matrix-revolutions
+    madrid
+    mourir-a-madrid
+    die-sieben-kleider-der-katrin
+    super-mario-bros
+    armitage-iii-polymatrix
+    rendezvous-in-madrid
+    herr-puntila-und-sein-knecht-matti
+    drei-maedchen-in-madrid
+    zwischen-madrid-und-paris
+    marie-antoinette-2
+    mario-und-der-zauberer
+    bezaubernde-marie-2
+    marie-lloyd
+    marie-line
+    marie-antoinette-3
+    maria-magdalena
 
 =cut
 
-sub poster {
+sub name {
     my $self = shift;
+    return $self->{name};
+}
+
+=head2 cast
+
+Returns the cast for the movie.
+
+    my $movie = WWW::Moviepilot->new(...)->movie(...);
+    my @cast = $movie->cast;
+
+Returned is a list of L<WWW::Moviepilot::Person> objects.
+
+=cut
+
+sub cast {
+    my ($self, $movie) = @_;
+
+    # we have already a cast
+    if ( @{ $self->{cast} } ) {
+        return @{ $self->{cast} };
+    }
+
+    if ( !$movie && !$self->name ) {
+        croak "no movie name provided, can't fetch cast";
+    }
+
+    $movie ||= $self->name;
+
+    my $uri = URI->new( $self->{m}->host . '/movies/' . uri_escape($movie) . '/casts.json' );
+    $uri->query_form( api_key => $self->{m}->api_key );
+
+    my $res = $self->{m}->ua->get( $uri->as_string );
+    if ( $res->is_error ) {
+        croak $res->status_line;
+    }
+
+    my $o = JSON::Any->from_json( $res->decoded_content );
+    foreach my $entry ( @{ $o->{movies_people} } ) {
+        my $person = WWW::Moviepilot::Person->new;
+        $person->populate({ data => $entry });
+        push @{ $self->{cast} }, $person;
+    }
+
+    return @{ $self->{cast} };
 }
 
 =head2 fields
@@ -154,7 +238,7 @@ Frank Wiegand, C<< <frank.wiegand at gmail.com> >>
 
 =head1 SEE ALSO
 
-L<WWW::Moviepilot>.
+L<WWW::Moviepilot>, L<WWW::Moviepilot::Person>.
 
 =head1 COPYRIGHT & LICENSE
 

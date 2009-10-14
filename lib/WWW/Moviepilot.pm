@@ -120,7 +120,7 @@ sub movie {
 
     my $json = JSON::Any->from_json( $res->decoded_content );
 
-    my $movie = WWW::Moviepilot::Movie->new;
+    my $movie = WWW::Moviepilot::Movie->new({ m => $self });
     $movie->populate({ data => $json });
     return $movie;
 }
@@ -169,12 +169,102 @@ sub search_movie {
 
     my @result = ();
     foreach my $entry ( @{ $o->{movies} } ) {
-        my $movie = WWW::Moviepilot::Movie->new;
+        my $movie = WWW::Moviepilot::Movie->new({ m => $self });
         $movie->populate({ data => $entry });
         push @result, $movie;
     }
 
     return @result;
+}
+
+=head2 person( $name )
+
+Retrieve a person as L<WWW::Moviepilot::Person> object.
+You should provide the name of the movie (this name is some kind of normalised,
+I'm not sure how exactly):
+
+    my $person = $m->person( 'pauil-newman' );
+
+=cut
+
+sub person {
+    my ($self, $name) = @_;
+
+    my $uri = URI->new( $self->host . '/people/' . uri_escape($name) . '.json' );
+    $uri->query_form( api_key => $self->api_key );
+    my $res = $self->ua->get( $uri->as_string );
+
+    if( $res->is_error ) {
+        croak $res->status_line;
+    }
+
+    my $json = JSON::Any->from_json( $res->decoded_content );
+    my $person = WWW::Moviepilot::Person->new({ m => $self });
+    $person->populate({ data => { person => $json } });
+    return $person;
+}
+
+=head2 search_person( $query )
+
+Searches for a person and returns a list with results:
+
+    my @people = $m->search_person( 'Paul Newman' );
+    if ( @people == 0 ) {
+        print 'no people found';
+    }
+    else {
+        # each $person is a WWW::Moviepilot::Person object
+        foreach my $person ( @person ) {
+            print $person->first_name;        # e.g. Paul
+            print $person->last_name;      # e.g. Newman
+        }
+    }
+
+See L<WWW::Moviepilot::Person>.
+
+=cut
+
+sub search_person {
+    my ($self, $query) = @_;
+
+    my $uri = URI->new( $self->host . '/searches/people.json' );
+    $uri->query_form(
+        api_key => $self->api_key,
+        q       => $query,
+    );
+
+    my $res = $self->ua->get( $uri->as_string );
+    if ( $res->is_error ) {
+        croak $res->status_line;
+    }
+
+    my $o = JSON::Any->from_json( $res->decoded_content );
+
+    my @result = ();
+    foreach my $entry ( @{ $o->{people} } ) {
+        my $person = WWW::Moviepilot::Person->new({ m => $self });
+        $person->populate({ data => { person => $entry } });
+        push @result, $person;
+    }
+
+    return @result;
+}
+
+=head2 cast( $name )
+
+Returns the cast of a movie.
+
+    my $m = WWW::Moviepilot->new(...);
+    my @cast = $m->cast('brust-oder-keule');
+
+See L<WWW::Moviepilot::Person>.
+
+=cut
+
+sub cast {
+    my ($self, $name) = @_;
+    my $movie = WWW::Moviepilot::Movie->new({ m => $self });
+    return $movie->cast( $name );
 }
 
 =head2 api_key
@@ -213,7 +303,7 @@ __END__
 =head1 SEE ALSO
 
 The Moviepilot API Dokumentation at L<http://wiki.github.com/moviepilot/moviepilot-API/>,
-L<WWW::Moviepilot::Movie>, L<LWP::UserAgent>.
+L<WWW::Moviepilot::Movie>, L<WWW::Moviepilot::Person>, L<LWP::UserAgent>.
 
 =head1 AUTHOR
 
