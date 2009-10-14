@@ -1,7 +1,6 @@
 Changes
 MANIFEST
 Makefile.PL
-META.yml
 README
 lib/WWW/Moviepilot.pm
 lib/WWW/Moviepilot/Movie.pm
