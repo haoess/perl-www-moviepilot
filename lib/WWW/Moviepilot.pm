@@ -17,7 +17,7 @@ WWW::Moviepilot - Interface to the moviepilot.de database
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
