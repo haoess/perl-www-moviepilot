@@ -21,7 +21,7 @@ Version 0.01
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -39,6 +39,8 @@ our $VERSION = '0.01';
     foreach my $movie ( @movies ) {
         print $movie->display_title;
     }
+
+I<Please note: This module is still in early development and subject to change.>
 
 =head1 METHODS
 
