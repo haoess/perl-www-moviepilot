@@ -2,6 +2,7 @@ Changes
 MANIFEST
 Makefile.PL
 README
+TODO
 lib/WWW/Moviepilot.pm
 lib/WWW/Moviepilot/Movie.pm
 lib/WWW/Moviepilot/Person.pm
