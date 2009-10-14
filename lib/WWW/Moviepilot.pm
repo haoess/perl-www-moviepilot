@@ -17,11 +17,11 @@ WWW::Moviepilot - Interface to the moviepilot.de database
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 
@@ -38,6 +38,20 @@ our $VERSION = '0.02';
     my @movies = $m->search_movie( 'matrix' );
     foreach my $movie ( @movies ) {
         print $movie->display_title;
+    }
+
+    # cast of a movie
+    my @cast = $m->cast( 'matrix' );
+    foreach my $person ( @cast ) {
+        print $person->last_name;
+        print $person->character;
+    }
+
+    # filmography of a person
+    my @filmography = $m->filmography( 'paul-newman' );
+    foreach my $movie ( @filmography ) {
+        print $movie->display_title;
+        print $movie->character;
     }
 
 I<Please note: This module is still in early development and subject to change.>
@@ -183,7 +197,7 @@ Retrieve a person as L<WWW::Moviepilot::Person> object.
 You should provide the name of the movie (this name is some kind of normalised,
 I'm not sure how exactly):
 
-    my $person = $m->person( 'pauil-newman' );
+    my $person = $m->person( 'paul-newman' );
 
 =cut
 
@@ -215,8 +229,8 @@ Searches for a person and returns a list with results:
     else {
         # each $person is a WWW::Moviepilot::Person object
         foreach my $person ( @person ) {
-            print $person->first_name;        # e.g. Paul
-            print $person->last_name;      # e.g. Newman
+            print $person->first_name; # e.g. Paul
+            print $person->last_name;  # e.g. Newman
         }
     }
 

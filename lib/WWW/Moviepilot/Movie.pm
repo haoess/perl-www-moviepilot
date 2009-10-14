@@ -31,7 +31,6 @@ WWW::Moviepilot::Movie - Handle moviepilot.de movies
     # *_lists in list context
     print join ' +++ ', $movie->emotions_list # "Spannend +++ Aufregend"
 
-
 =head1 METHODS
 
 =head2 new
