@@ -127,7 +127,7 @@ sub filmography {
 
     my $o = JSON::Any->from_json( $res->decoded_content );
     foreach my $entry ( @{ $o->{movies_people} } ) {
-        my $movie = WWW::Moviepilot::Movie->new;
+        my $movie = WWW::Moviepilot::Movie->new({ m => $self->{m} });
         $movie->populate({ data => $entry });
         push @{ $self->{filmography} }, $movie;
     }

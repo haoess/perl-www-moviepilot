@@ -155,7 +155,7 @@ sub cast {
 
     my $o = JSON::Any->from_json( $res->decoded_content );
     foreach my $entry ( @{ $o->{movies_people} } ) {
-        my $person = WWW::Moviepilot::Person->new;
+        my $person = WWW::Moviepilot::Person->new({ m => $self->{m} });
         $person->populate({ data => $entry });
         push @{ $self->{cast} }, $person;
     }
