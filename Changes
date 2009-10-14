@@ -1,5 +1,8 @@
 Revision history for WWW-Moviepilot
 
+0.03    2009-10-14
+        * Add filmography support.
+
 0.02    2009-10-14
         * Add person support (search and retrieve), retrieve of casts.
         * More tests.
