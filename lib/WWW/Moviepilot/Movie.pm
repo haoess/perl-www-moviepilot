@@ -67,6 +67,23 @@ sub populate {
     }
 }
 
+=head2 character
+
+If used together with a filmography search, you get the name of the character
+the person plays in the movie.
+
+    my @filmography = $person->filmography;
+    foreach my $movie (@filmography) {
+        printf "%s plays %s\n", $person->last_name, $movie->character;
+    }
+
+=cut
+
+sub character {
+    my $self = shift;
+    return $self->{data}{character};
+}
+
 =head2 name
 
 Returns the internal moviepilot name for the movie.
@@ -210,7 +227,7 @@ As of 2009-10-13, these fields are supported:
 
 sub fields {
     my $self = shift;
-    return keys %{ $self->{data} };
+    return keys %{ $self->{data}{movie} };
 }
 
 our $AUTOLOAD;
@@ -218,15 +235,15 @@ sub AUTOLOAD {
     my $self = shift;
     my $field = $AUTOLOAD;
     $field =~ s/.*://;
-    if ( !exists $self->{data}{$field} ) {
+    if ( !exists $self->{data}{movie}{$field} ) {
         return;
     }
 
     if ( $field =~ /_list$/ && wantarray ) {
-        return split /,/, $self->{data}{$field};
+        return split /,/, $self->{data}{movie}{$field};
     }
 
-    return $self->{data}{$field};
+    return $self->{data}{movie}{$field};
 }
 
 1;

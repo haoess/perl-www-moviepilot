@@ -121,7 +121,7 @@ sub movie {
     my $json = JSON::Any->from_json( $res->decoded_content );
 
     my $movie = WWW::Moviepilot::Movie->new({ m => $self });
-    $movie->populate({ data => $json });
+    $movie->populate({ data => { movie => $json } });
     return $movie;
 }
 
@@ -170,7 +170,7 @@ sub search_movie {
     my @result = ();
     foreach my $entry ( @{ $o->{movies} } ) {
         my $movie = WWW::Moviepilot::Movie->new({ m => $self });
-        $movie->populate({ data => $entry });
+        $movie->populate({ data => { movie => $entry } });
         push @result, $movie;
     }
 
@@ -265,6 +265,23 @@ sub cast {
     my ($self, $name) = @_;
     my $movie = WWW::Moviepilot::Movie->new({ m => $self });
     return $movie->cast( $name );
+}
+
+=head2 filmography( $name )
+
+Returns the filmography of a person.
+
+    my $m = WWW::Moviepilot->new(...);
+    my @filmography = $m->filmography('paul-newman');
+
+See L<WWW::Moviepilot::Movie>.
+
+=cut
+
+sub filmography {
+    my ($self, $name) = @_;
+    my $person = WWW::Moviepilot::Person->new({ m => $self });
+    return $person->filmography( $name );
 }
 
 =head2 api_key

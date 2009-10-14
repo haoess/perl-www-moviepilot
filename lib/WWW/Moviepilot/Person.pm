@@ -5,6 +5,10 @@ use strict;
 
 use Carp;
 use JSON::Any;
+use URI;
+use URI::Escape;
+
+use WWW::Moviepilot::Movie;
 
 =head1 NAME
 
@@ -32,8 +36,12 @@ Creates a blank WWW::Moviepilot::Person object.
 =cut
 
 sub new {
-    my $class = shift;
-    my $self = bless {} => $class;
+    my ($class, $args) = @_;
+    my $self = bless {
+        filmography => [],
+        name        => undef,
+        m           => $args->{m},
+    } => $class;
     return $self;
 }
 
@@ -46,6 +54,9 @@ Populates an object with data, you should not use this directly.
 sub populate {
     my ($self, $args) = @_;
     $self->{data} = $args->{data};
+    if ( $self->restful_url ) {
+        ($self->{name}) = $self->restful_url =~ m{/([^/]+)$};
+    }
 }
 
 =head2 character
@@ -63,6 +74,65 @@ the person plays in the movie.
 sub character {
     my $self = shift;
     return $self->{data}{character};
+}
+
+=head2 name
+
+Returns the internal moviepilot name for the person.
+
+    my @people = WWW::Moviepilot->new(...)->search_person( 'paul-newman' );
+    foreach my $person (@people) {
+        print $person->name;
+    }
+
+=cut
+
+sub name {
+    my $self = shift;
+    return $self->{name};
+}
+
+=head2 filmography
+
+Returns the filmography for the person.
+
+    my $person = WWW::Moviepilot->new(...)->person(...);
+    my @filmography = $person->cast;
+
+Returned is a list of L<WWW::Moviepilot::Person> objects.
+
+=cut
+
+sub filmography {
+    my ($self, $name) = @_;
+
+    # we have already a filmography
+    if ( @{ $self->{filmography} } ) {
+        return @{ $self->{filmography} };
+    }
+
+    if ( !$name && !$self->name ) {
+        croak "no name provided, can't fetch filmography";
+    }
+
+    $name ||= $self->name;
+
+    my $uri = URI->new( $self->{m}->host . '/people/' . uri_escape($name) . '/filmography.json' );
+    $uri->query_form( api_key => $self->{m}->api_key );
+
+    my $res = $self->{m}->ua->get( $uri->as_string );
+    if ( $res->is_error ) {
+        croak $res->status_line;
+    }
+
+    my $o = JSON::Any->from_json( $res->decoded_content );
+    foreach my $entry ( @{ $o->{movies_people} } ) {
+        my $movie = WWW::Moviepilot::Movie->new;
+        $movie->populate({ data => $entry });
+        push @{ $self->{filmography} }, $movie;
+    }
+
+    return @{ $self->{filmography} };
 }
 
 =head2 fields
